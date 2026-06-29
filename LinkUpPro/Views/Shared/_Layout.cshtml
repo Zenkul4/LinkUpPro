@@ -1,30 +1,58 @@
 ﻿<!DOCTYPE html>
-<html lang="en">
+<html lang="es">
 <head>
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1.0" />
-    <title>@ViewData["Title"] - LinkUpPro</title>
-    <script type="importmap"></script>
+    <title>@ViewData["Title"] - LinkUp</title>
     <link rel="stylesheet" href="~/lib/bootstrap/dist/css/bootstrap.min.css" />
     <link rel="stylesheet" href="~/css/site.css" asp-append-version="true" />
-    <link rel="stylesheet" href="~/LinkUpPro.styles.css" asp-append-version="true" />
 </head>
-<body>
+<body class="bg-light">
     <header>
-        <nav class="navbar navbar-expand-sm navbar-toggleable-sm navbar-light bg-white border-bottom box-shadow mb-3">
-            <div class="container-fluid">
-                <a class="navbar-brand" asp-area="" asp-controller="Home" asp-action="Index">LinkUpPro</a>
-                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse" aria-controls="navbarSupportedContent"
-                        aria-expanded="false" aria-label="Toggle navigation">
+        <nav class="navbar navbar-expand-sm navbar-light bg-white border-bottom shadow-sm mb-4 py-2">
+            <div class="container">
+                <a class="navbar-brand text-primary fw-bold" asp-controller="Home" asp-action="Index">LinkUp Pro</a>
+                <button class="navbar-toggler" type="button" data-bs-toggle="collapse" data-bs-target=".navbar-collapse">
                     <span class="navbar-toggler-icon"></span>
                 </button>
-                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between">
-                    <ul class="navbar-nav flex-grow-1">
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Index">Home</a>
+                <div class="navbar-collapse collapse d-sm-inline-flex justify-content-between align-items-center">
+
+                    <!-- Barra de Búsqueda Global (Para el Sprint 3) -->
+                    <form class="d-flex mx-auto w-50" asp-controller="Home" asp-action="Index" method="get">
+                        <input class="form-control me-2 bg-light border-0" type="search" name="searchText" value="@ViewBag.SearchText" placeholder="Buscar publicaciones..." aria-label="Search">
+                        <button class="btn btn-outline-primary" type="submit">Buscar</button>
+                    </form>
+
+                    <ul class="navbar-nav ms-auto align-items-center">
+                        <li class="nav-item me-3">
+                            <a class="nav-link text-dark fw-semibold" asp-controller="Home" asp-action="Index">Feed</a>
                         </li>
-                        <li class="nav-item">
-                            <a class="nav-link text-dark" asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
+                        <li class="nav-item me-4">
+                            <!-- Enlace hacia el módulo de Amigos -->
+                            <a class="nav-link text-dark fw-semibold" asp-controller="Friend" asp-action="Index">Amigos</a>
+                        </li>
+
+                        <!-- Menú de Usuario (Ícono tipo GitHub) -->
+                        <li class="nav-item dropdown">
+                            <a class="nav-link dropdown-toggle d-flex align-items-center" href="#" id="userDropdown" role="button" data-bs-toggle="dropdown" aria-expanded="false">
+                                <div class="bg-primary text-white rounded-circle d-flex justify-content-center align-items-center shadow-sm" style="width: 35px; height: 35px; font-weight: bold; font-size: 1.1rem;">
+                                    @(User.Identity!.IsAuthenticated ? User.Identity.Name!.Substring(0, 1).ToUpper() : "U")
+                                </div>
+                            </a>
+                            <ul class="dropdown-menu dropdown-menu-end shadow border-0 mt-2">
+                                <li>
+                                    <div class="px-3 py-2 border-bottom">
+                                        <p class="mb-0 fw-bold">@User.Identity.Name</p>
+                                    </div>
+                                </li>
+                                <li><a class="dropdown-item mt-2" asp-controller="Account" asp-action="Profile">Configuración de Perfil</a></li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <form asp-controller="Account" asp-action="Logout" method="post" class="m-0">
+                                        <button type="submit" class="dropdown-item text-danger fw-bold">Cerrar Sesión</button>
+                                    </form>
+                                </li>
+                            </ul>
                         </li>
                     </ul>
                 </div>
@@ -36,15 +64,8 @@
             @RenderBody()
         </main>
     </div>
-
-    <footer class="border-top footer text-muted">
-        <div class="container">
-            &copy; 2026 - LinkUpPro - <a asp-area="" asp-controller="Home" asp-action="Privacy">Privacy</a>
-        </div>
-    </footer>
     <script src="~/lib/jquery/dist/jquery.min.js"></script>
     <script src="~/lib/bootstrap/dist/js/bootstrap.bundle.min.js"></script>
-    <script src="~/js/site.js" asp-append-version="true"></script>
     @await RenderSectionAsync("Scripts", required: false)
 </body>
 </html>

@@ -1,12 +1,9 @@
-﻿using System;
-using System.Collections.Generic;
-using System.Linq;
-using System.Text;
-using System.Threading.Tasks;
+﻿using Microsoft.AspNetCore.Http;
 
-namespace Application.Interfaces.Services
+namespace LinkUpProject.Application.Interfaces.Services;
+
+public interface IStorageService
 {
-    internal class IStorageService
-    {
-    }
+    Task<string> UploadFileAsync(IFormFile file, string directoryName);
+    void DeleteFile(string fileUrl);
 }

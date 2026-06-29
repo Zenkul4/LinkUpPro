@@ -1,9 +1,11 @@
 ﻿using Application.Interfaces.Services;
-using Application.Services;
+
+using LinkUpProject.Application.Interfaces.Services;
+using LinkUpProject.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
 using System.Reflection;
 
-namespace Application;
+namespace LinkUpProject.Application;
 
 public static class ServiceRegistration
 {
@@ -11,6 +13,10 @@ public static class ServiceRegistration
     {
         services.AddAutoMapper(config => config.AddMaps(Assembly.GetExecutingAssembly()));
 
-        services.AddScoped<IAccountService, AccountService>();
+        services.AddTransient<IPostService, PostService>();
+        services.AddTransient<ICommentService, CommentService>();
+        services.AddTransient<IStorageService, StorageService>();
+        services.AddTransient<IAccountService, AccountService>();
+        services.AddTransient<IReactionService, ReactionService>();
     }
 }

@@ -1,5 +1,4 @@
-using LinkUpProject.Persistence;
-using Application;
+using LinkUpProject.Application;
 using Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
@@ -28,7 +27,7 @@ app.UseAuthorization();
 app.MapStaticAssets();
 app.MapControllerRoute(
     name: "default",
-    pattern: "{controller=Account}/{action=Login}/{id?}")
+    pattern: "{controller=Home}/{action=Index}/{id?}")
     .WithStaticAssets();
 
 app.Run();

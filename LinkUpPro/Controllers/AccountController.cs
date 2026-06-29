@@ -1,5 +1,5 @@
-﻿using Application.Interfaces.Services;
-using Application.ViewModels.Account;
+﻿using LinkUpProject.Application.ViewModels.Account;
+using LinkUpProject.Application.Interfaces.Services;
 using Microsoft.AspNetCore.Mvc;
 
 namespace LinkUpPro.Controllers;
@@ -21,11 +21,11 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        var response = await _accountService.LoginAsync(vm);
+        var result = await _accountService.LoginAsync(vm);
 
-        if (response != null)
+        if (!result.IsSuccess)
         {
-            ModelState.AddModelError("", response);
+            ModelState.AddModelError(string.Empty, result.ErrorMessage);
             return View(vm);
         }
 
@@ -40,11 +40,11 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        var response = await _accountService.RegisterAsync(vm);
+        var result = await _accountService.RegisterAsync(vm);
 
-        if (response != null)
+        if (!result.IsSuccess)
         {
-            ModelState.AddModelError("", response);
+            ModelState.AddModelError(string.Empty, result.ErrorMessage);
             return View(vm);
         }
 
@@ -60,7 +60,13 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        await _accountService.ForgotPasswordAsync(vm);
+        var result = await _accountService.ForgotPasswordAsync(vm);
+
+        if (!result.IsSuccess)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage);
+            return View(vm);
+        }
 
         TempData["Success"] = "Si el nombre de usuario corresponde a una cuenta registrada, recibirá un enlace para restablecer su contraseña.";
         return RedirectToAction(nameof(Login));
@@ -81,11 +87,11 @@ public class AccountController : Controller
     {
         if (!ModelState.IsValid) return View(vm);
 
-        var response = await _accountService.ResetPasswordAsync(vm);
+        var result = await _accountService.ResetPasswordAsync(vm);
 
-        if (response != null)
+        if (!result.IsSuccess)
         {
-            ModelState.AddModelError("", response);
+            ModelState.AddModelError(string.Empty, result.ErrorMessage);
             return View(vm);
         }
 
@@ -95,29 +101,39 @@ public class AccountController : Controller
 
     public IActionResult AccessDenied() => View();
 
+    [HttpPost]
+    [ValidateAntiForgeryToken]
     public async Task<IActionResult> Logout()
     {
         await _accountService.LogoutAsync();
         return RedirectToAction(nameof(Login));
     }
+
     [HttpGet]
     public async Task<IActionResult> Profile()
     {
         if (!User.Identity!.IsAuthenticated)
             return RedirectToAction(nameof(Login));
 
-        var profile = await _accountService.GetProfileAsync(User.Identity.Name!);
+        var result = await _accountService.GetProfileAsync(User.Identity.Name!);
 
-        return View(profile);
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.ErrorMessage;
+            return RedirectToAction("Index", "Home");
+        }
+
+        return View(result.Data);
     }
+
     [HttpGet]
     public async Task<IActionResult> ConfirmEmail(string userId, string token)
     {
-        var response = await _accountService.ConfirmEmailAsync(userId, token);
+        var result = await _accountService.ConfirmEmailAsync(userId, token);
 
-        if (response != null)
+        if (!result.IsSuccess)
         {
-            TempData["Error"] = response;
+            TempData["Error"] = result.ErrorMessage;
             return RedirectToAction(nameof(Login));
         }
 

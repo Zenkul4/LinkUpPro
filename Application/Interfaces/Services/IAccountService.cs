@@ -1,16 +1,18 @@
-﻿using Application.ViewModels.Account;
+﻿using LinkUpProject.Application.ViewModels.Account;
+using LinkUpProject.Domain.Common;
 
-namespace Application.Interfaces.Services;
+namespace LinkUpProject.Application.Interfaces.Services;
 
 public interface IAccountService
 {
-    Task<string?> LoginAsync(LoginViewModel vm);
-    Task<string?> RegisterAsync(RegisterViewModel vm);
+    Task<Result> LoginAsync(LoginViewModel vm);
+    Task<Result> RegisterAsync(RegisterViewModel vm);
     Task LogoutAsync();
 
-    Task<string?> ForgotPasswordAsync(ForgotPasswordViewModel vm);
-    Task<string?> ResetPasswordAsync(ResetPasswordViewModel vm);
+    Task<Result> ForgotPasswordAsync(ForgotPasswordViewModel vm);
+    Task<Result> ResetPasswordAsync(ResetPasswordViewModel vm);
 
-    Task<ProfileViewModel?> GetProfileAsync(string userName);
-    Task<string?> ConfirmEmailAsync(string userId, string token);
+    Task<Result<ProfileViewModel>> GetProfileAsync(string userName);
+    Task<Result> ConfirmEmailAsync(string userId, string token);
+    Task<Result> UpdateProfileAsync(ProfileViewModel vm, string userId);
 }

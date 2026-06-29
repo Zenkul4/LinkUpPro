@@ -1,7 +1,7 @@
 ﻿using Microsoft.AspNetCore.Http;
 using System.ComponentModel.DataAnnotations;
 
-namespace Application.ViewModels.Account;
+namespace LinkUpProject.Application.ViewModels.Account;
 
 public class RegisterViewModel
 {
