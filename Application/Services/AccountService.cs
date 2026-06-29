@@ -1,9 +1,10 @@
-﻿using Application.Interfaces.Services;
-using Application.ViewModels.Account;
+﻿using LinkUpProject.Application.Interfaces.Services;
+using LinkUpProject.Application.ViewModels.Account;
+using LinkUpProject.Domain.Common;
 using LinkUpProject.Domain.Entities;
 using Microsoft.AspNetCore.Identity;
 
-namespace Application.Services;
+namespace LinkUpProject.Application.Services;
 
 public class AccountService : IAccountService
 {
@@ -18,15 +19,15 @@ public class AccountService : IAccountService
         _signInManager = signInManager;
     }
 
-    public async Task<string?> LoginAsync(LoginViewModel vm)
+    public async Task<Result> LoginAsync(LoginViewModel vm)
     {
         var user = await _userManager.FindByNameAsync(vm.UserName);
 
         if (user == null)
-            return "El nombre de usuario o la contraseña son incorrectos.";
+            return Result.Failure("El nombre de usuario o la contraseña son incorrectos.");
 
         if (!user.IsActive || !await _userManager.IsEmailConfirmedAsync(user))
-            return "Su cuenta se encuentra inactiva. Debe activarla mediante el enlace enviado a su correo electrónico.";
+            return Result.Failure("Su cuenta se encuentra inactiva. Debe activarla mediante el enlace enviado a su correo electrónico.");
 
         var result = await _signInManager.PasswordSignInAsync(
             vm.UserName,
@@ -35,15 +36,15 @@ public class AccountService : IAccountService
             lockoutOnFailure: true);
 
         if (result.IsLockedOut)
-            return "La cuenta se encuentra bloqueada temporalmente debido a varios intentos fallidos.";
+            return Result.Failure("La cuenta se encuentra bloqueada temporalmente debido a varios intentos fallidos.");
 
         if (!result.Succeeded)
-            return "El nombre de usuario o la contraseña son incorrectos.";
+            return Result.Failure("El nombre de usuario o la contraseña son incorrectos.");
 
-        return null;
+        return Result.Success();
     }
 
-    public async Task<string?> RegisterAsync(RegisterViewModel vm)
+    public async Task<Result> RegisterAsync(RegisterViewModel vm)
     {
         var user = new ApplicationUser
         {
@@ -51,16 +52,16 @@ public class AccountService : IAccountService
             LastName = vm.LastName.Trim(),
             UserName = vm.UserName.Trim(),
             Email = vm.Email.Trim(),
-            PhoneNumber = vm.PhoneNumber.Trim(),
+            PhoneNumber = vm.PhoneNumber?.Trim(),
             IsActive = false
         };
 
         var result = await _userManager.CreateAsync(user, vm.Password);
 
         if (!result.Succeeded)
-            return string.Join(" ", result.Errors.Select(e => e.Description));
+            return Result.Failure(string.Join(" ", result.Errors.Select(e => e.Description)));
 
-        return null;
+        return Result.Success();
     }
 
     public async Task LogoutAsync()
@@ -68,25 +69,26 @@ public class AccountService : IAccountService
         await _signInManager.SignOutAsync();
     }
 
-    public async Task<string?> ForgotPasswordAsync(ForgotPasswordViewModel vm)
+    public async Task<Result> ForgotPasswordAsync(ForgotPasswordViewModel vm)
     {
         var user = await _userManager.FindByNameAsync(vm.UserName);
 
         if (user == null)
-            return "El usuario no existe.";
+            return Result.Failure("El usuario no existe.");
 
-        // Aquí posteriormente se enviará el correo con el token.
         var token = await _userManager.GeneratePasswordResetTokenAsync(user);
 
-        return null;
+        // TODO: Lógica de envío de correo para el Sprint 4
+
+        return Result.Success();
     }
 
-    public async Task<string?> ResetPasswordAsync(ResetPasswordViewModel vm)
+    public async Task<Result> ResetPasswordAsync(ResetPasswordViewModel vm)
     {
         var user = await _userManager.FindByIdAsync(vm.UserId);
 
         if (user == null)
-            return "El usuario no existe.";
+            return Result.Failure("El usuario no existe.");
 
         var result = await _userManager.ResetPasswordAsync(
             user,
@@ -94,42 +96,61 @@ public class AccountService : IAccountService
             vm.NewPassword);
 
         if (!result.Succeeded)
-            return string.Join(" ", result.Errors.Select(e => e.Description));
+            return Result.Failure(string.Join(" ", result.Errors.Select(e => e.Description)));
 
-        return null;
+        return Result.Success();
     }
-    public async Task<ProfileViewModel?> GetProfileAsync(string userName)
+
+    public async Task<Result<ProfileViewModel>> GetProfileAsync(string userName)
     {
         var user = await _userManager.FindByNameAsync(userName);
 
         if (user == null)
-            return null;
+            return Result<ProfileViewModel>.Failure("Usuario no encontrado.");
 
-        return new ProfileViewModel
+        var profile = new ProfileViewModel
         {
             FirstName = user.FirstName,
             LastName = user.LastName,
             UserName = user.UserName!,
             Email = user.Email!,
-            PhoneNumber = user.PhoneNumber!,
+            PhoneNumber = user.PhoneNumber ?? string.Empty,
             ProfilePictureUrl = user.ProfilePictureUrl
         };
+
+        return Result<ProfileViewModel>.Success(profile);
     }
-    public async Task<string?> ConfirmEmailAsync(string userId, string token)
+
+    public async Task<Result> ConfirmEmailAsync(string userId, string token)
     {
         var user = await _userManager.FindByIdAsync(userId);
 
         if (user == null)
-            return "El enlace de activación no es válido o ya fue utilizado.";
+            return Result.Failure("El enlace de activación no es válido o ya fue utilizado.");
 
         var result = await _userManager.ConfirmEmailAsync(user, token);
 
         if (!result.Succeeded)
-            return "El enlace de activación no es válido o ya fue utilizado.";
+            return Result.Failure("El enlace de activación no es válido o ya fue utilizado.");
 
         user.IsActive = true;
         await _userManager.UpdateAsync(user);
 
-        return null;
+        return Result.Success();
+    }
+
+    public async Task<Result> UpdateProfileAsync(ProfileViewModel vm, string userId)
+    {
+        var user = await _userManager.FindByIdAsync(userId);
+        if (user == null) return Result.Failure("Usuario no encontrado.");
+
+        user.FirstName = vm.FirstName;
+        user.LastName = vm.LastName;
+        user.PhoneNumber = vm.PhoneNumber;
+
+        var result = await _userManager.UpdateAsync(user);
+        if (result.Succeeded) return Result.Success();
+
+        return Result.Failure("Error al actualizar el perfil.");
     }
 }

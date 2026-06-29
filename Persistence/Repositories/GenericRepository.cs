@@ -47,4 +47,14 @@ public class GenericRepository<T> : IGenericRepository<T> where T : class
         _dbContext.Set<T>().Remove(entity);
         await _dbContext.SaveChangesAsync();
     }
+    public virtual async Task<List<T>> FindWithIncludeAsync(Expression<Func<T, bool>> filter, List<string> properties)
+    {
+        IQueryable<T> query = _dbContext.Set<T>().Where(filter);
+
+        foreach (var property in properties)
+        {
+            query = query.Include(property);
+        }
+        return await query.ToListAsync();
+    }
 }

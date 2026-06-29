@@ -1,4 +1,4 @@
-﻿namespace Application.ViewModels.Account;
+﻿namespace LinkUpProject.Application.ViewModels.Account;
 
 public class ProfileViewModel
 {

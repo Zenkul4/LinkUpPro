@@ -1,6 +1,8 @@
-﻿using Application.Interfaces; 
+﻿using Application.Interfaces;
+using LinkUpProject.Application.Interfaces.Repositories;
 using LinkUpProject.Domain.Entities;
 using LinkUpProject.Persistence.Contexts;
+using LinkUpProject.Persistence.Repositories;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.EntityFrameworkCore;
 using Microsoft.Extensions.Configuration;
@@ -32,6 +34,6 @@ public static class ServiceRegistration
         .AddDefaultTokenProviders();
 
         // Inyección del repositorio genérico
-        // services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
     }
 }

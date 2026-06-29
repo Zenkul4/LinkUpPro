@@ -1,6 +1,6 @@
 ﻿using System.ComponentModel.DataAnnotations;
 
-namespace Application.ViewModels.Account;
+namespace LinkUpProject.Application.ViewModels.Account;
 
 public class ResetPasswordViewModel
 {
