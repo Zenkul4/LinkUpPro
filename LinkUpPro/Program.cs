@@ -1,14 +1,15 @@
 using LinkUpProject.Application;
+using LinkUpProject.Infrastructure;
 using Persistence;
 
 var builder = WebApplication.CreateBuilder(args);
 
 builder.Services.AddControllersWithViews();
+builder.Services.AddHttpContextAccessor();
 
 builder.Services.AddApplicationLayer();
 builder.Services.AddPersistenceInfrastructure(builder.Configuration);
-
-// builder.Services.AddSharedInfrastructure();
+builder.Services.AddSharedInfrastructure(builder.Configuration);
 
 var app = builder.Build();
 
