@@ -17,5 +17,6 @@ public static class ServiceRegistration
         services.AddTransient<IStorageService, StorageService>();
         services.AddTransient<IAccountService, AccountService>();
         services.AddTransient<IReactionService, ReactionService>();
+        //services.AddTransient<IEmailService, EmailService>();
     }
 }
