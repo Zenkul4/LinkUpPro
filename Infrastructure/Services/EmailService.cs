@@ -1,4 +1,5 @@
-using LinkUpProject.Application.DTOs; 
+using LinkUpProject.Application.DTOs;
+using LinkUpProject.Application.DTOs.Email;
 using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Infrastructure.Settings;
 using Microsoft.Extensions.Options;

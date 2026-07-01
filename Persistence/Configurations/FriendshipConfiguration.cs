@@ -12,8 +12,7 @@ public class FriendshipConfiguration : IEntityTypeConfiguration<Friendship>
             .IsRequired()
             .HasMaxLength(20); 
 
-        builder.HasIndex(f => new { f.User1Id, f.User2Id, f.Status })
-            .IsUnique()
-            .HasFilter("[Status] = 'Active'");
+        builder.HasIndex(f => new { f.User1Id, f.User2Id })
+            .IsUnique();
     }
 }
