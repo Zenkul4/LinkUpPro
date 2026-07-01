@@ -218,11 +218,15 @@ public class FriendService : IFriendService
     private async Task<int> CountMutualFriendsAsync(string currentUserId, string otherUserId)
     {
         var currentFriendIds = (await _friendRepository.GetActiveFriendshipsAsync(currentUserId))
-            .Select(f => GetOtherUserId(f, currentUserId))
+            .Select(f => GetOtherUser(f, currentUserId))
+            .Where(u => u.IsActive && u.EmailConfirmed)
+            .Select(u => u.Id)
             .ToHashSet();
 
         var otherFriendIds = (await _friendRepository.GetActiveFriendshipsAsync(otherUserId))
-            .Select(f => GetOtherUserId(f, otherUserId))
+            .Select(f => GetOtherUser(f, otherUserId))
+            .Where(u => u.IsActive && u.EmailConfirmed)
+            .Select(u => u.Id)
             .ToHashSet();
 
         currentFriendIds.IntersectWith(otherFriendIds);
@@ -247,11 +251,6 @@ public class FriendService : IFriendService
     private static ApplicationUser GetOtherUser(Friendship friendship, string userId)
     {
         return friendship.User1Id == userId ? friendship.User2 : friendship.User1;
-    }
-
-    private static string GetOtherUserId(Friendship friendship, string userId)
-    {
-        return friendship.User1Id == userId ? friendship.User2Id : friendship.User1Id;
     }
 
     private static string GetFullName(ApplicationUser user)

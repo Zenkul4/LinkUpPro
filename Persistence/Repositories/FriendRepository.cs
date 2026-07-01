@@ -119,13 +119,25 @@ public class FriendRepository : IFriendRepository
     {
         await using var transaction = await _dbContext.Database.BeginTransactionAsync(IsolationLevel.Serializable);
 
-        if (await HasActiveFriendshipAsync(request.SenderId, request.ReceiverId))
+        var existingFriendship = await _dbContext.Friendships.FirstOrDefaultAsync(f =>
+            f.User1Id == friendship.User1Id && f.User2Id == friendship.User2Id);
+
+        if (existingFriendship?.Status == ActiveStatus)
         {
             return false;
         }
 
+        if (existingFriendship == null)
+        {
+            await _dbContext.Friendships.AddAsync(friendship);
+        }
+        else
+        {
+            existingFriendship.Status = ActiveStatus;
+            existingFriendship.CreatedAt = DateTime.UtcNow;
+        }
+
         _dbContext.FriendRequests.Update(request);
-        await _dbContext.Friendships.AddAsync(friendship);
         await _dbContext.SaveChangesAsync();
         await transaction.CommitAsync();
 

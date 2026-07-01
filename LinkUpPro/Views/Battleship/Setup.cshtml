@@ -1,0 +1,225 @@
+@model LinkUpProject.Application.ViewModels.Battleship.BattleshipSetupViewModel
+
+@{
+    ViewData["Title"] = "Setup Battleship";
+}
+
+<div class="row justify-content-center">
+    <div class="col-xl-11">
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+            <div>
+                <h2 class="h4 fw-bold mb-1">Colocacion de barcos</h2>
+                <p class="text-muted mb-0">Oponente: <strong>@Model.OpponentName</strong></p>
+            </div>
+            <a asp-action="Index" class="btn btn-outline-secondary">Volver</a>
+        </div>
+
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success shadow-sm">@TempData["SuccessMessage"]</div>
+        }
+
+        @if (Model.CurrentUserHasPlacedShips && Model.Status == "Setup")
+        {
+            <div class="alert alert-info shadow-sm">El otro jugador aun no termina de configurar sus barcos.</div>
+        }
+        else if (Model.Status == "Ready")
+        {
+            <div class="alert alert-success shadow-sm">Ambos jugadores terminaron de configurar sus barcos.</div>
+        }
+
+        <div class="row g-4">
+            <div class="col-lg-5">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pt-3">
+                        <h3 class="h6 fw-bold mb-0">Flota requerida</h3>
+                    </div>
+                    <div class="card-body">
+                        <div asp-validation-summary="ModelOnly" class="text-danger mb-3"></div>
+
+                        <form asp-action="Setup" method="post" id="shipForm">
+                            <input asp-for="MatchId" type="hidden" />
+                            <input asp-for="OpponentName" type="hidden" />
+                            <input asp-for="Status" type="hidden" />
+
+                            @for (var i = 0; i < Model.Ships.Count; i++)
+                            {
+                                <div class="border rounded-3 p-3 mb-3 ship-row" data-index="@i">
+                                    <input asp-for="Ships[i].Size" type="hidden" />
+                                    <div class="d-flex justify-content-between align-items-center mb-2">
+                                        <span class="fw-bold">Barco de @Model.Ships[i].Size casillas</span>
+                                        <span class="badge bg-light text-secondary border">#@(i + 1)</span>
+                                    </div>
+                                    <div class="row g-2">
+                                        <div class="col-4">
+                                            <label asp-for="Ships[i].StartX" class="form-label small text-muted">Columna</label>
+                                            <input asp-for="Ships[i].StartX" class="form-control ship-input" min="1" max="12" />
+                                            <span asp-validation-for="Ships[i].StartX" class="text-danger small"></span>
+                                        </div>
+                                        <div class="col-4">
+                                            <label asp-for="Ships[i].StartY" class="form-label small text-muted">Fila</label>
+                                            <input asp-for="Ships[i].StartY" class="form-control ship-input" min="1" max="12" />
+                                            <span asp-validation-for="Ships[i].StartY" class="text-danger small"></span>
+                                        </div>
+                                        <div class="col-4">
+                                            <label asp-for="Ships[i].Direction" class="form-label small text-muted">Direccion</label>
+                                            <select asp-for="Ships[i].Direction" class="form-select ship-input">
+                                                <option value="Horizontal">Horizontal</option>
+                                                <option value="Vertical">Vertical</option>
+                                            </select>
+                                            <span asp-validation-for="Ships[i].Direction" class="text-danger small"></span>
+                                        </div>
+                                    </div>
+                                </div>
+                            }
+
+                            <div class="d-flex justify-content-between align-items-center gap-2">
+                                <span id="boardMessage" class="small text-muted"></span>
+                                <button type="submit" class="btn btn-primary px-4">Guardar barcos</button>
+                            </div>
+                        </form>
+                    </div>
+                </div>
+            </div>
+
+            <div class="col-lg-7">
+                <div class="card border-0 shadow-sm">
+                    <div class="card-header bg-white border-0 pt-3">
+                        <h3 class="h6 fw-bold mb-0">Tablero 12 x 12</h3>
+                    </div>
+                    <div class="card-body">
+                        <div class="battleship-board-wrap">
+                            <div id="battleshipBoard" class="battleship-board" aria-label="Tablero de Battleship"></div>
+                        </div>
+                        <div class="d-flex flex-wrap gap-2 mt-3 small text-muted">
+                            <span><span class="legend-box bg-primary"></span> Barco</span>
+                            <span><span class="legend-box bg-danger"></span> Superposicion o limite</span>
+                            <span><span class="legend-box bg-light border"></span> Agua</span>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <partial name="_ValidationScriptsPartial" />
+    <script>
+        const boardSize = 12;
+        const board = document.getElementById('battleshipBoard');
+        const message = document.getElementById('boardMessage');
+        const inputs = document.querySelectorAll('.ship-input');
+
+        function renderBoard() {
+            board.innerHTML = '';
+            const occupied = new Map();
+            let hasError = false;
+
+            for (let y = 0; y <= boardSize; y++) {
+                for (let x = 0; x <= boardSize; x++) {
+                    const cell = document.createElement('div');
+                    cell.className = 'battle-cell';
+
+                    if (x === 0 && y === 0) {
+                        cell.classList.add('battle-label');
+                    } else if (y === 0) {
+                        cell.classList.add('battle-label');
+                        cell.textContent = x;
+                    } else if (x === 0) {
+                        cell.classList.add('battle-label');
+                        cell.textContent = y;
+                    } else {
+                        cell.dataset.x = x;
+                        cell.dataset.y = y;
+                    }
+
+                    board.appendChild(cell);
+                }
+            }
+
+            document.querySelectorAll('.ship-row').forEach((row) => {
+                const size = Number(row.querySelector('input[name$=".Size"]').value);
+                const startX = Number(row.querySelector('input[name$=".StartX"]').value);
+                const startY = Number(row.querySelector('input[name$=".StartY"]').value);
+                const direction = row.querySelector('select[name$=".Direction"]').value;
+
+                for (let offset = 0; offset < size; offset++) {
+                    const x = direction === 'Horizontal' ? startX + offset : startX;
+                    const y = direction === 'Vertical' ? startY + offset : startY;
+                    const key = `${x}:${y}`;
+                    const cell = board.querySelector(`[data-x="${x}"][data-y="${y}"]`);
+
+                    if (!cell) {
+                        hasError = true;
+                        continue;
+                    }
+
+                    if (occupied.has(key)) {
+                        hasError = true;
+                        cell.classList.add('battle-error');
+                    } else {
+                        cell.classList.add('battle-ship');
+                        occupied.set(key, true);
+                    }
+                }
+            });
+
+            message.textContent = hasError ? 'Revisa limites o superposiciones antes de guardar.' : 'Distribucion valida visualmente.';
+            message.className = hasError ? 'small text-danger' : 'small text-success';
+        }
+
+        inputs.forEach((input) => input.addEventListener('input', renderBoard));
+        renderBoard();
+    </script>
+}
+
+<style>
+    .battleship-board-wrap {
+        overflow-x: auto;
+    }
+
+    .battleship-board {
+        display: grid;
+        grid-template-columns: repeat(13, minmax(28px, 1fr));
+        gap: 4px;
+        min-width: 430px;
+    }
+
+    .battle-cell {
+        aspect-ratio: 1;
+        border: 1px solid #d8e0ea;
+        background: #f8fafc;
+        border-radius: 6px;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        font-size: 0.75rem;
+        font-weight: 600;
+        color: #667085;
+    }
+
+    .battle-label {
+        border-color: transparent;
+        background: transparent;
+    }
+
+    .battle-ship {
+        background: #0d6efd;
+        border-color: #0d6efd;
+    }
+
+    .battle-error {
+        background: #dc3545;
+        border-color: #dc3545;
+    }
+
+    .legend-box {
+        display: inline-block;
+        width: 12px;
+        height: 12px;
+        border-radius: 3px;
+        margin-right: 4px;
+        vertical-align: -1px;
+    }
+</style>

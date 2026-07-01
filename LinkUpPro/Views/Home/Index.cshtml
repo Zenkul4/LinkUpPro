@@ -2,6 +2,7 @@
 
 @{
     ViewData["Title"] = "Inicio";
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
 }
 
 <div class="row justify-content-center">
@@ -124,7 +125,7 @@
                         </div>
                     </div>
 
-                    @if (post.AuthorId == "1")
+                    @if (post.AuthorId == currentUserId)
                     {
                         <div class="dropdown">
                             <button class="btn btn-sm btn-light dropdown-toggle border-0" type="button" data-bs-toggle="dropdown"></button>
@@ -192,7 +193,7 @@
                                         <small class="text-muted me-3" style="font-size: 0.75rem;">@comment.CreatedAt.ToString("HH:mm")</small>
                                         <button class="btn btn-sm btn-link text-decoration-none p-0 text-secondary fw-bold" style="font-size: 0.75rem;" onclick="document.getElementById('reply-form-@comment.Id').classList.toggle('d-none')">Responder</button>
 
-                                        @if (comment.AuthorId == "1")
+                                        @if (comment.AuthorId == currentUserId)
                                         {
                                             <form asp-controller="Comment" asp-action="Delete" method="post" class="ms-3 d-inline">
                                                 <input type="hidden" name="id" value="@comment.Id" />
