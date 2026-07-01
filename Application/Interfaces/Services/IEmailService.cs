@@ -1,5 +1,8 @@
-namespace LinkUpProject.Application.Interfaces.Services;
+using LinkUpProject.Application.DTOs.Email;
 
-internal class IEmailService
+namespace Application.Interfaces.Services;
+
+public interface IEmailService
 {
+    Task SendAsync(EmailRequest request);
 }
