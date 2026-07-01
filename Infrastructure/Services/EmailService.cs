@@ -1,4 +1,3 @@
-using Application.Interfaces.Services;
 using LinkUpProject.Application.DTOs; 
 using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Infrastructure.Settings;

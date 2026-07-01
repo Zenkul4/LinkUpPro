@@ -19,7 +19,7 @@ public class HomeController : Controller
         _userManager = userManager;
     }
 
-    /*public async Task<IActionResult> Index(string? searchText, string? contentType, DateTime? from, DateTime? to, string? editState)
+    public async Task<IActionResult> Index(string? searchText, string? contentType, DateTime? from, DateTime? to, string? editState)
     {
         var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
@@ -38,5 +38,5 @@ public class HomeController : Controller
         }
 
         return View(result.Data);
-    }*/
+    }
 }

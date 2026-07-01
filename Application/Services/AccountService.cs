@@ -1,5 +1,4 @@
 using LinkUpProject.Application.DTOs;
-using Application.Interfaces.Services;
 using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Application.ViewModels.Account;
 using LinkUpProject.Domain.Common;
