@@ -4,6 +4,7 @@ using LinkUpProject.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace LinkUpPro.Controllers;
 
@@ -23,20 +24,25 @@ public class HomeController : Controller
     {
         var userId = _userManager.GetUserId(User);
         if (string.IsNullOrWhiteSpace(userId)) return RedirectToAction("Login", "Account");
+        if (string.IsNullOrEmpty(userId)) return RedirectToAction("Login", "Account");
+        if (string.IsNullOrEmpty(userId)) return RedirectToAction("Login", "Account");
+        if (string.IsNullOrEmpty(userId)) return RedirectToAction("Login", "Account");
+        if (string.IsNullOrEmpty(userId)) return RedirectToAction("Login", "Account");
+        if (string.IsNullOrEmpty(userId)) return RedirectToAction("Login", "Account");
 
-        var result = await _postService.GetMyPostsAsync(userId, searchText, contentType, from, to, editState);
-
-        if (!result.IsSuccess)
-        {
-            TempData["ErrorMessage"] = result.ErrorMessage;
-            return View(Enumerable.Empty<PostViewModel>());
-        }
+        var result = await _postService.GetFeedAsync(userId, searchText, contentType, from, to, editState);
 
         ViewBag.SearchText = searchText;
-        ViewBag.ContentType = contentType;
+        ViewBag.ContentType = contentType ?? "Todos";
         ViewBag.From = from?.ToString("yyyy-MM-dd");
         ViewBag.To = to?.ToString("yyyy-MM-dd");
-        ViewBag.EditState = editState;
+            return View(Enumerable.Empty<PostViewModel>());
+            return View(Enumerable.Empty<Application.ViewModels.Post.PostViewModel>());
+            return View(Enumerable.Empty<Application.ViewModels.Post.PostViewModel>());
+            return View(Enumerable.Empty<Application.ViewModels.Post.PostViewModel>());
+            return View(Enumerable.Empty<Application.ViewModels.Post.PostViewModel>());
+            return View(Enumerable.Empty<Application.ViewModels.Post.PostViewModel>());
+        }
 
         return View(result.Data);
     }
