@@ -1,10 +1,12 @@
 ﻿using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Application.ViewModels.Post;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace LinkUpPro.Controllers;
 
-// [Authorize] // COMENTADO TEMPORALMENTE (BYPASS)
+[Authorize]
 public class PostController : Controller
 {
     private readonly IPostService _postService;
@@ -18,7 +20,7 @@ public class PostController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(SavePostViewModel vm)
     {
-        var userId = "1"; // BYPASS
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
         if (!ModelState.IsValid)
         {
@@ -39,27 +41,24 @@ public class PostController : Controller
     [HttpGet]
     public async Task<IActionResult> Edit(int id)
     {
-        var userId = "1"; // BYPASS
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
-        // AHORA SÍ PASAMOS EL userId COMO SEGUNDO PARÁMETRO
         var result = await _postService.GetPostForEditAsync(id, userId);
 
         if (!result.IsSuccess)
         {
-            TempData["ErrorMessage"] = "No se pudo cargar la publicación, no existe o no tienes permisos.";
+            TempData["ErrorMessage"] = "No se pudo cargar la publicación o no existe.";
             return RedirectToAction("Index", "Home");
         }
 
-        var post = result.Data;
-
-        return View(post);
+        return View(result.Data);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Edit(SavePostViewModel vm)
     {
-        var userId = "1"; // BYPASS
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
         if (!ModelState.IsValid) return View(vm);
 
@@ -79,7 +78,7 @@ public class PostController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Delete(int id)
     {
-        var userId = "1"; // BYPASS
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
 
         var result = await _postService.DeletePostAsync(id, userId);
 

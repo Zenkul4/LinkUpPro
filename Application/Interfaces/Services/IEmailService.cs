@@ -1,6 +1,6 @@
-using Application.DTOs.Email;
+using LinkUpProject.Application.DTOs;
 
-namespace Application.Interfaces.Services;
+namespace LinkUpProject.Application.Interfaces.Services;
 
 public interface IEmailService
 {

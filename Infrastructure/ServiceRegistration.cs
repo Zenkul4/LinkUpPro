@@ -1,4 +1,4 @@
-using Application.Interfaces.Services;
+using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Infrastructure.Services;
 using LinkUpProject.Infrastructure.Settings;
 using Microsoft.Extensions.Configuration;
