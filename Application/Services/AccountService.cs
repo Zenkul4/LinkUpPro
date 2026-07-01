@@ -1,4 +1,4 @@
-using Application.DTOs.Email;
+using LinkUpProject.Application.DTOs;
 using Application.Interfaces.Services;
 using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Application.ViewModels.Account;

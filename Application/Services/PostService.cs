@@ -1,4 +1,3 @@
-//using IGenericRepository<Friendship> _friendshipRepository;
 using AutoMapper;
 using LinkUpProject.Application.Interfaces.Repositories;
 using LinkUpProject.Application.Interfaces.Services;
@@ -12,12 +11,18 @@ namespace LinkUpProject.Application.Services;
 public class PostService : IPostService
 {
     private readonly IGenericRepository<Post> _postRepository;
+    private readonly IFriendRepository _friendRepository; 
     private readonly IStorageService _storageService;
     private readonly IMapper _mapper;
 
-    public PostService(IGenericRepository<Post> postRepository, IStorageService storageService, IMapper mapper)
+    public PostService(
+        IGenericRepository<Post> postRepository,
+        IFriendRepository friendRepository, 
+        IStorageService storageService,
+        IMapper mapper)
     {
         _postRepository = postRepository;
+        _friendRepository = friendRepository;
         _storageService = storageService;
         _mapper = mapper;
     }
@@ -117,112 +122,14 @@ public class PostService : IPostService
         return Result.Success();
     }
 
-    public async Task<Result<IEnumerable<PostViewModel>>> GetMyPostsAsync(string userId, string? searchText, string? contentType, DateTime? from, DateTime? to, string? editState)
-    {
-        if (from.HasValue && to.HasValue && from.Value > to.Value)
-        {
-            return Result<IEnumerable<PostViewModel>>.Failure("La fecha inicial no puede ser posterior a la fecha final.");
-        }
-
-        var includes = new List<string>
-        {
-            "Author",
-            "Reactions",
-            "Comments",
-            "Comments.Author",
-            "Comments.Replies",
-            "Comments.Replies.Author"
-        };
-
-        IEnumerable<Post> posts = await _postRepository.FindWithIncludeAsync(p => p.AuthorId == userId && !p.IsDeleted, includes);
-        foreach (var post in posts)
-        {
-            post.Comments = post.Comments.Where(c => !c.IsDeleted).ToList();
-
-            foreach (var comment in post.Comments)
-            {
-                comment.Replies = comment.Replies.Where(r => !r.IsDeleted).ToList();
-            }
-        }
-        if (!string.IsNullOrWhiteSpace(searchText))
-        {
-            posts = posts.Where(p => p.Content.Contains(searchText.Trim(), StringComparison.OrdinalIgnoreCase));
-        }
-
-        if (!string.IsNullOrWhiteSpace(contentType) && contentType != "Todos")
-        {
-            posts = posts.Where(p => p.ContentType == contentType);
-        }
-
-        if (from.HasValue)
-        {
-            posts = posts.Where(p => p.CreatedAt.Date >= from.Value.Date);
-        }
-
-        if (to.HasValue)
-        {
-            posts = posts.Where(p => p.CreatedAt.Date <= to.Value.Date);
-        }
-
-        if (!string.IsNullOrWhiteSpace(editState) && editState != "Todas")
-        {
-            if (editState == "Editadas")
-            {
-                posts = posts.Where(p => p.LastModifiedAt.HasValue);
-            }
-            else if (editState == "No editadas")
-            {
-                posts = posts.Where(p => !p.LastModifiedAt.HasValue);
-            }
-        }
-
-        var orderedPosts = posts.OrderByDescending(p => p.CreatedAt).ToList();
-        var viewModels = _mapper.Map<IEnumerable<PostViewModel>>(orderedPosts).ToList();
-
-        foreach (var vm in viewModels)
-        {
-            var post = orderedPosts.First(p => p.Id == vm.Id);
-            var userReaction = post.Reactions.FirstOrDefault(r => r.UserId == userId);
-            vm.CurrentUserReaction = userReaction?.Type;
-        }
-
-        return Result<IEnumerable<PostViewModel>>.Success(viewModels);
-    }
-
-    private string ExtractYouTubeEmbedUrl(string url)
-    {
-        try
-        {
-            var uri = new Uri(url);
-            var query = HttpUtility.ParseQueryString(uri.Query);
-            var videoId = string.Empty;
-
-            if (query.AllKeys.Contains("v"))
-            {
-                videoId = query["v"];
-            }
-            else
-            {
-                videoId = uri.Segments.Last();
-            }
-
-            return $"https://www.youtube.com/embed/{videoId}";
-        }
-        catch
-        {
-            return url;
-        }
-        
-    }/*
     public async Task<Result<IEnumerable<PostViewModel>>> GetFeedAsync(string userId, string? searchText, string? contentType, DateTime? from, DateTime? to, string? editState)
     {
         if (from.HasValue && to.HasValue && from.Value > to.Value)
             return Result<IEnumerable<PostViewModel>>.Failure("La fecha inicial no puede ser posterior a la fecha final.");
 
+        var friendships = await _friendRepository.GetActiveFriendshipsAsync(userId);
 
-        var friendships = await _friendshipRepository.FindAsync(f =>
-            (f.SenderId == userId || f.ReceiverId == userId) && f.Status == "Aceptada");
-        var friendIds = friendships.Select(f => f.SenderId == userId ? f.ReceiverId : f.SenderId).ToList();
+        var friendIds = friendships.Select(f => f.User1Id == userId ? f.User2Id : f.User1Id).ToList();
 
         var includes = new List<string> { "Author", "Reactions", "Comments", "Comments.Author", "Comments.Replies", "Comments.Replies.Author" };
 
@@ -271,5 +178,30 @@ public class PostService : IPostService
         }
 
         return Result<IEnumerable<PostViewModel>>.Success(viewModels);
-    }*/
+    }
+
+    private string ExtractYouTubeEmbedUrl(string url)
+    {
+        try
+        {
+            var uri = new Uri(url);
+            var query = HttpUtility.ParseQueryString(uri.Query);
+            var videoId = string.Empty;
+
+            if (query.AllKeys.Contains("v"))
+            {
+                videoId = query["v"];
+            }
+            else
+            {
+                videoId = uri.Segments.Last();
+            }
+
+            return $"https://www.youtube.com/embed/{videoId}";
+        }
+        catch
+        {
+            return url;
+        }
+    }
 }
