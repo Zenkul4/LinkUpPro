@@ -1,4 +1,3 @@
-﻿using Application.Interfaces;
 using LinkUpProject.Application.Interfaces.Repositories;
 using LinkUpProject.Domain.Entities;
 using LinkUpProject.Persistence.Contexts;
@@ -35,5 +34,6 @@ public static class ServiceRegistration
 
         // Inyección del repositorio genérico
         services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
+        services.AddTransient<IFriendRepository, FriendRepository>();
     }
 }
