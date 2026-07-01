@@ -18,5 +18,6 @@ public static class ServiceRegistration
         services.AddTransient<IAccountService, AccountService>();
         services.AddTransient<IReactionService, ReactionService>();
         services.AddTransient<IFriendService, FriendService>();
+        services.AddTransient<IBattleshipService, BattleshipService>();
     }
 }

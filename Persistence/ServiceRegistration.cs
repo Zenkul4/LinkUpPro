@@ -35,5 +35,6 @@ public static class ServiceRegistration
         // Inyección del repositorio genérico
         services.AddTransient(typeof(IGenericRepository<>), typeof(GenericRepository<>));
         services.AddTransient<IFriendRepository, FriendRepository>();
+        services.AddTransient<IBattleshipRepository, BattleshipRepository>();
     }
 }

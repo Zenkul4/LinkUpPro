@@ -1,0 +1,129 @@
+@model LinkUpProject.Application.ViewModels.Battleship.BattleshipIndexViewModel
+
+@{
+    ViewData["Title"] = "Battleship";
+    var activeMatches = Model.Matches.Where(m => !m.IsFinished).ToList();
+    var finishedMatches = Model.Matches.Where(m => m.IsFinished).ToList();
+}
+
+<div class="row justify-content-center">
+    <div class="col-lg-10">
+        @if (TempData["SuccessMessage"] != null)
+        {
+            <div class="alert alert-success shadow-sm">@TempData["SuccessMessage"]</div>
+        }
+        @if (TempData["ErrorMessage"] != null)
+        {
+            <div class="alert alert-danger shadow-sm">@TempData["ErrorMessage"]</div>
+        }
+
+        <div class="d-flex flex-column flex-md-row justify-content-between align-items-md-center gap-2 mb-3">
+            <div>
+                <h2 class="h4 fw-bold mb-1">Battleship</h2>
+                <p class="text-muted mb-0">Selecciona un amigo y prepara tu tablero de 12 x 12.</p>
+            </div>
+            <span class="badge bg-primary-subtle text-primary rounded-pill px-3 py-2">Setup & Fase 1</span>
+        </div>
+
+        <div class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-3">
+                <h3 class="h6 fw-bold mb-0">Nueva partida</h3>
+            </div>
+            <div class="card-body">
+                @if (!Model.Opponents.Any())
+                {
+                    <p class="text-muted mb-0">Necesitas tener amigos activos para iniciar una partida.</p>
+                }
+                else
+                {
+                    <form asp-action="Create" method="post" class="row g-2 align-items-center">
+                        <div class="col-md">
+                            <select name="opponentId" class="form-select bg-light border-0" required>
+                                <option value="">Selecciona un oponente</option>
+                                @foreach (var opponent in Model.Opponents)
+                                {
+                                    <option value="@opponent.Id">@opponent.FullName (@opponent.UserName)</option>
+                                }
+                            </select>
+                        </div>
+                        <div class="col-md-auto">
+                            <button type="submit" class="btn btn-primary w-100">Crear partida</button>
+                        </div>
+                    </form>
+                }
+            </div>
+        </div>
+
+        <section class="card border-0 shadow-sm mb-4">
+            <div class="card-header bg-white border-0 pt-3">
+                <h3 class="h6 fw-bold mb-0">Partidas activas</h3>
+            </div>
+            <div class="card-body pt-2">
+                @if (!activeMatches.Any())
+                {
+                    <p class="text-muted mb-0">No tienes partidas activas.</p>
+                }
+                else
+                {
+                    <div class="row g-3">
+                        @foreach (var match in activeMatches)
+                        {
+                            <div class="col-md-6">
+                                <div class="border rounded-3 p-3 h-100 bg-white">
+                                    <div class="d-flex justify-content-between align-items-start gap-3 mb-2">
+                                        <div>
+                                            <div class="fw-bold">@match.OpponentName</div>
+                                            <div class="small text-muted">@@@match.OpponentUserName</div>
+                                        </div>
+                                        <span class="badge @(match.Status == "Ready" ? "bg-success" : "bg-warning text-dark")">@match.Status</span>
+                                    </div>
+                                    <div class="small text-muted mb-3">
+                                        Inicio: @match.StartedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm") · @match.ElapsedHours h
+                                        <br />
+                                        Tus barcos: @match.CurrentUserShipsCount/5 · Oponente: @match.OpponentShipsCount/5
+                                    </div>
+                                    <a asp-action="Setup" asp-route-id="@match.Id" class="btn btn-sm btn-outline-primary rounded-pill px-3">
+                                        @(match.CurrentUserHasPlacedShips ? "Ver setup" : "Colocar barcos")
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+
+        <section class="card border-0 shadow-sm">
+            <div class="card-header bg-white border-0 pt-3">
+                <h3 class="h6 fw-bold mb-0">Historial</h3>
+            </div>
+            <div class="card-body pt-2">
+                @if (!finishedMatches.Any())
+                {
+                    <p class="text-muted mb-0">No tienes partidas finalizadas.</p>
+                }
+                else
+                {
+                    <div class="list-group">
+                        @foreach (var match in finishedMatches)
+                        {
+                            <div class="list-group-item border-0 border-bottom">
+                                <div class="d-flex flex-column flex-md-row justify-content-between gap-2">
+                                    <div>
+                                        <div class="fw-bold">@match.OpponentName</div>
+                                        <div class="small text-muted">@@@match.OpponentUserName</div>
+                                    </div>
+                                    <div class="small text-muted text-md-end">
+                                        Inicio: @match.StartedAt.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                        <br />
+                                        Fin: @match.FinishedAt?.ToLocalTime().ToString("dd/MM/yyyy HH:mm")
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </section>
+    </div>
+</div>
