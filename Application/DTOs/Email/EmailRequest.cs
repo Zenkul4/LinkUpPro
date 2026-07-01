@@ -1,4 +1,4 @@
-namespace LinkUpProject.Application.DTOs.Email;
+namespace Application.DTOs.Email;
 
 public class EmailRequest
 {

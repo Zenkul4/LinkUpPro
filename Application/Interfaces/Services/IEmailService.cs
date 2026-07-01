@@ -1,4 +1,4 @@
-using LinkUpProject.Application.DTOs.Email;
+using Application.DTOs.Email;
 
 namespace Application.Interfaces.Services;
 
