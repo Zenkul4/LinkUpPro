@@ -11,5 +11,9 @@ public class FriendRequestConfiguration : IEntityTypeConfiguration<FriendRequest
         builder.Property(fr => fr.Status)
             .IsRequired()
             .HasMaxLength(30);
+
+        builder.HasIndex(fr => new { fr.SenderId, fr.ReceiverId, fr.Status })
+            .IsUnique()
+            .HasFilter("[Status] = 'Pending'");
     }
 }

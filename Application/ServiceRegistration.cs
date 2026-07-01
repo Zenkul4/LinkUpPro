@@ -1,5 +1,4 @@
-﻿using Application.Interfaces.Services;
-
+﻿
 using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Application.Services;
 using Microsoft.Extensions.DependencyInjection;
@@ -18,5 +17,6 @@ public static class ServiceRegistration
         services.AddTransient<IStorageService, StorageService>();
         services.AddTransient<IAccountService, AccountService>();
         services.AddTransient<IReactionService, ReactionService>();
+        services.AddTransient<IFriendService, FriendService>();
     }
 }
