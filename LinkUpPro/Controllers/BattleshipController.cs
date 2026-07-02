@@ -1,9 +1,8 @@
 using LinkUpProject.Application.Interfaces.Services;
 using LinkUpProject.Application.ViewModels.Battleship;
-using LinkUpProject.Domain.Entities;
 using Microsoft.AspNetCore.Authorization;
-using Microsoft.AspNetCore.Identity;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace LinkUpPro.Controllers;
 
@@ -11,28 +10,16 @@ namespace LinkUpPro.Controllers;
 public class BattleshipController : Controller
 {
     private readonly IBattleshipService _battleshipService;
-    private readonly UserManager<ApplicationUser> _userManager;
 
-    public BattleshipController(IBattleshipService battleshipService, UserManager<ApplicationUser> userManager)
+    public BattleshipController(IBattleshipService battleshipService)
     {
         _battleshipService = battleshipService;
-        _userManager = userManager;
     }
 
-    [HttpGet]
     public async Task<IActionResult> Index()
     {
-        var userId = _userManager.GetUserId(User);
-        if (string.IsNullOrWhiteSpace(userId))
-            return RedirectToAction("Login", "Account");
-
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var result = await _battleshipService.GetIndexAsync(userId);
-        if (!result.IsSuccess)
-        {
-            TempData["ErrorMessage"] = result.ErrorMessage;
-            return RedirectToAction("Index", "Home");
-        }
-
         return View(result.Data);
     }
 
@@ -40,57 +27,102 @@ public class BattleshipController : Controller
     [ValidateAntiForgeryToken]
     public async Task<IActionResult> Create(string opponentId)
     {
-        var userId = _userManager.GetUserId(User);
-        if (string.IsNullOrWhiteSpace(userId))
-            return RedirectToAction("Login", "Account");
-
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var result = await _battleshipService.CreateMatchAsync(userId, opponentId);
+
         if (!result.IsSuccess)
         {
             TempData["ErrorMessage"] = result.ErrorMessage;
             return RedirectToAction(nameof(Index));
         }
 
-        TempData["SuccessMessage"] = "Partida creada. Coloca tus barcos para continuar.";
         return RedirectToAction(nameof(Setup), new { id = result.Data });
     }
 
     [HttpGet]
     public async Task<IActionResult> Setup(int id)
     {
-        var userId = _userManager.GetUserId(User);
-        if (string.IsNullOrWhiteSpace(userId))
-            return RedirectToAction("Login", "Account");
-
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
         var result = await _battleshipService.GetSetupAsync(id, userId);
+
+        if (!result.IsSuccess)
+            return RedirectToAction(nameof(Index));
+
+        return View(result.Data);
+    }
+
+    [HttpPost]
+    public async Task<IActionResult> SaveShips(BattleshipSetupViewModel vm)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+
+        var result = await _battleshipService.SaveShipsAsync(vm, userId);
+
         if (!result.IsSuccess)
         {
             TempData["ErrorMessage"] = result.ErrorMessage;
-            return RedirectToAction(nameof(Index));
+            return RedirectToAction(nameof(Setup), new { id = vm.MatchId });
         }
+
+        return RedirectToAction(nameof(Match), new { id = vm.MatchId });
+    }
+
+
+    [HttpGet]
+    public async Task<IActionResult> Match(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var result = await _battleshipService.GetGameplayAsync(id, userId);
+
+        if (!result.IsSuccess)
+            return RedirectToAction(nameof(Index));
 
         return View(result.Data);
     }
 
     [HttpPost]
     [ValidateAntiForgeryToken]
-    public async Task<IActionResult> Setup(BattleshipSetupViewModel viewModel)
+    public async Task<IActionResult> Attack(int matchId, int x, int y)
     {
-        var userId = _userManager.GetUserId(User);
-        if (string.IsNullOrWhiteSpace(userId))
-            return RedirectToAction("Login", "Account");
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var result = await _battleshipService.AttackAsync(matchId, userId, x, y);
 
-        if (!ModelState.IsValid)
-            return View(viewModel);
+        if (!result.IsSuccess)
+            return Json(new { success = false, message = result.ErrorMessage });
 
-        var result = await _battleshipService.SaveShipsAsync(viewModel, userId);
+        return Json(new { success = true });
+    }
+
+    [HttpGet]
+    public async Task<IActionResult> MatchStatus(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var result = await _battleshipService.GetGameplayAsync(id, userId);
+
+        if (!result.IsSuccess)
+            return Json(new { success = false });
+
+        return Json(new
+        {
+            success = true,
+            isMyTurn = result.Data.IsMyTurn,
+            status = result.Data.Status,
+            attacksCount = result.Data.MyAttacks.Count + result.Data.OpponentAttacks.Count
+        });
+    }
+
+    [HttpPost]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> Cancel(int id)
+    {
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier)!;
+        var result = await _battleshipService.CancelMatchAsync(id, userId);
+
         if (!result.IsSuccess)
         {
-            ModelState.AddModelError(string.Empty, result.ErrorMessage);
-            return View(viewModel);
+            TempData["ErrorMessage"] = result.ErrorMessage;
         }
 
-        TempData["SuccessMessage"] = "Barcos guardados correctamente.";
-        return RedirectToAction(nameof(Setup), new { id = viewModel.MatchId });
+        return RedirectToAction(nameof(Index));
     }
 }

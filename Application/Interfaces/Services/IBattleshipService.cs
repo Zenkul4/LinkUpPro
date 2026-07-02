@@ -9,4 +9,7 @@ public interface IBattleshipService
     Task<Result<int>> CreateMatchAsync(string playerId, string opponentId);
     Task<Result<BattleshipSetupViewModel>> GetSetupAsync(int matchId, string userId);
     Task<Result> SaveShipsAsync(BattleshipSetupViewModel viewModel, string userId);
+    Task<Result<BattleshipGameplayViewModel>> GetGameplayAsync(int matchId, string userId);
+    Task<Result> CancelMatchAsync(int matchId, string userId);
+    Task<Result> AttackAsync(int matchId, string userId, int x, int y);
 }

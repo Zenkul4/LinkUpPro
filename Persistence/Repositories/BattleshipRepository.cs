@@ -44,6 +44,7 @@ public class BattleshipRepository : IBattleshipRepository
             .Include(m => m.Player1)
             .Include(m => m.Player2)
             .Include(m => m.Ships)
+            .Include(m => m.Attacks)
             .FirstOrDefaultAsync(m => m.Id == matchId);
     }
 

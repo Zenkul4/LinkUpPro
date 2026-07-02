@@ -11,6 +11,10 @@ public class BattleshipService : IBattleshipService
     private const int BoardSize = 12;
     private const string SetupStatus = "Setup";
     private const string ReadyStatus = "Ready";
+    private const string PlayingStatus = "Playing";
+    private const string FinishedStatus = "Finished";
+    private const string CanceledStatus = "Canceled";
+
     private static readonly int[] RequiredShipSizes = [5, 4, 3, 3, 2];
     private readonly IBattleshipRepository _battleshipRepository;
 
@@ -149,6 +153,152 @@ public class BattleshipService : IBattleshipService
         return Result.Success();
     }
 
+    public async Task<Result<BattleshipGameplayViewModel>> GetGameplayAsync(int matchId, string userId)
+    {
+        var match = await _battleshipRepository.GetMatchByIdAsync(matchId);
+
+        if (match == null || !IsPlayer(match, userId))
+            return Result<BattleshipGameplayViewModel>.Failure("Partida no encontrada.");
+
+        var opponent = GetOpponent(match, userId);
+
+        var myShips = match.Ships.Where(s => s.PlayerId == userId).Select(s => new BattleshipShipViewModel
+        {
+            Size = s.Size,
+            StartX = s.StartX,
+            StartY = s.StartY,
+            Direction = s.Direction,
+            IsSunk = s.IsSunk
+        }).ToList();
+
+        var myAttacks = match.Attacks.Where(a => a.AttackerId == userId).Select(a => new BattleshipAttackViewModel
+        {
+            X = a.X,
+            Y = a.Y,
+            IsHit = a.IsHit
+        }).ToList();
+
+        var opponentAttacks = match.Attacks.Where(a => a.AttackerId == opponent.Id).Select(a => new BattleshipAttackViewModel
+        {
+            X = a.X,
+            Y = a.Y,
+            IsHit = a.IsHit
+        }).ToList();
+
+        var vm = new BattleshipGameplayViewModel
+        {
+            MatchId = match.Id,
+            OpponentName = GetFullName(opponent),
+            Status = match.Status,
+            IsMyTurn = match.CurrentTurnId == userId,
+            WinnerId = match.WinnerId,
+            CurrentUserId = userId,
+            MyShips = myShips,
+            MyAttacks = myAttacks,
+            OpponentAttacks = opponentAttacks
+        };
+
+        return Result<BattleshipGameplayViewModel>.Success(vm);
+    }
+
+    public async Task<Result> AttackAsync(int matchId, string userId, int x, int y)
+    {
+        var match = await _battleshipRepository.GetMatchByIdAsync(matchId);
+
+        if (match == null || !IsPlayer(match, userId))
+            return Result.Failure("La partida no existe o no tienes acceso.");
+
+        if (match.Status != ReadyStatus && match.Status != PlayingStatus)
+            return Result.Failure("La partida no está en curso.");
+
+        if (match.CurrentTurnId != userId)
+            return Result.Failure("No es tu turno de atacar.");
+
+        if (x < 0 || x >= BoardSize || y < 0 || y >= BoardSize)
+            return Result.Failure("Las coordenadas están fuera del tablero.");
+
+        if (match.Attacks.Any(a => a.AttackerId == userId && a.X == x && a.Y == y))
+            return Result.Failure("Ya has atacado esta coordenada previamente.");
+
+        var opponent = GetOpponent(match, userId);
+        var opponentShips = match.Ships.Where(s => s.PlayerId == opponent.Id).ToList();
+
+        bool isHit = false;
+        BattleshipShip? hitShip = null;
+
+        foreach (var ship in opponentShips)
+        {
+            if (ship.Direction == "Horizontal")
+            {
+                if (y == ship.StartY && x >= ship.StartX && x < ship.StartX + ship.Size)
+                {
+                    isHit = true;
+                    hitShip = ship;
+                    break;
+                }
+            }
+            else
+            {
+                if (x == ship.StartX && y >= ship.StartY && y < ship.StartY + ship.Size)
+                {
+                    isHit = true;
+                    hitShip = ship;
+                    break;
+                }
+            }
+        }
+
+        var attack = new BattleshipAttack
+        {
+            MatchId = match.Id,
+            AttackerId = userId,
+            X = x,
+            Y = y,
+            IsHit = isHit,
+            AttackedAt = DateTime.UtcNow
+        };
+
+        match.Attacks.Add(attack);
+        match.LastActivityAt = DateTime.UtcNow;
+
+        if (match.Status == ReadyStatus)
+            match.Status = PlayingStatus;
+
+        if (isHit && hitShip != null)
+        {
+            int hitCount = 0;
+            var allUserAttacks = match.Attacks.Where(a => a.AttackerId == userId && a.IsHit).ToList();
+
+            for (int i = 0; i < hitShip.Size; i++)
+            {
+                int checkX = hitShip.Direction == "Horizontal" ? hitShip.StartX + i : hitShip.StartX;
+                int checkY = hitShip.Direction == "Vertical" ? hitShip.StartY + i : hitShip.StartY;
+
+                if (allUserAttacks.Any(a => a.X == checkX && a.Y == checkY))
+                    hitCount++;
+            }
+
+            if (hitCount == hitShip.Size)
+            {
+                hitShip.IsSunk = true;
+
+                if (opponentShips.All(s => s.IsSunk))
+                {
+                    match.Status = FinishedStatus;
+                    match.WinnerId = userId;
+                    match.FinishedAt = DateTime.UtcNow;
+                }
+            }
+        }
+        else
+        {
+            match.CurrentTurnId = opponent.Id;
+        }
+
+        await _battleshipRepository.UpdateMatchAsync(match);
+        return Result.Success();
+    }
+
     private static Result ValidateShips(IReadOnlyList<SaveBattleshipShipViewModel> ships)
     {
         if (ships.Count != RequiredShipSizes.Length)
@@ -249,5 +399,22 @@ public class BattleshipService : IBattleshipService
         return string.Equals(direction, "Vertical", StringComparison.OrdinalIgnoreCase)
             ? "Vertical"
             : "Horizontal";
+    }
+    public async Task<Result> CancelMatchAsync(int matchId, string userId)
+    {
+        var match = await _battleshipRepository.GetMatchByIdAsync(matchId);
+
+        if (match == null || !IsPlayer(match, userId))
+            return Result.Failure("La partida no existe o no tienes acceso.");
+
+        if (match.Status == FinishedStatus || match.Status == CanceledStatus)
+            return Result.Failure("La partida ya finalizó o ya fue cancelada.");
+
+        match.Status = CanceledStatus;
+        match.FinishedAt = DateTime.UtcNow;
+        match.LastActivityAt = DateTime.UtcNow;
+
+        await _battleshipRepository.UpdateMatchAsync(match);
+        return Result.Success();
     }
 }

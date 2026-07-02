@@ -1,0 +1,252 @@
+﻿@model LinkUpProject.Application.ViewModels.Battleship.BattleshipGameplayViewModel
+
+@{
+    ViewData["Title"] = "Batalla Naval";
+    bool[,] myShipsGrid = new bool[12, 12];
+    foreach (var ship in Model.MyShips)
+    {
+        for (int i = 0; i < ship.Size; i++)
+        {
+            int px = ship.Direction == "Horizontal" ? ship.StartX + i : ship.StartX;
+            int py = ship.Direction == "Vertical" ? ship.StartY + i : ship.StartY;
+            if (px >= 0 && px < 12 && py >= 0 && py < 12)
+            {
+                myShipsGrid[px, py] = true;
+            }
+        }
+    }
+}
+
+<style>
+    .bs-grid {
+        display: grid;
+        grid-template-columns: repeat(12, 1fr);
+        gap: 2px;
+        background: #212529;
+        padding: 4px;
+        border-radius: 4px;
+        aspect-ratio: 1;
+    }
+
+    .bs-cell {
+        background: #0077be;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        aspect-ratio: 1;
+        transition: 0.2s;
+        font-size: 1.2rem;
+        user-select: none;
+    }
+
+        .bs-cell.enemy:hover {
+            background: #0099e6;
+            cursor: pointer;
+        }
+        .bs-cell.ship {
+            background: #6c757d !important;
+        }
+
+        .bs-cell.hit {
+            background: #dc3545 !important;
+            color: white;
+            cursor: not-allowed;
+        }
+
+        .bs-cell.miss {
+            background: #adb5bd !important;
+            color: white;
+            cursor: not-allowed;
+        }
+</style>
+
+<div class="container mt-4">
+    <div class="text-center mb-4">
+        <h2>Batalla contra @Model.OpponentName</h2>
+
+        @if (Model.Status == "Finished" || Model.Status == "Canceled")
+        {
+            if (Model.Status == "Canceled")
+            {
+                <h3 class="text-secondary mt-3">Esta partida ha sido cancelada.</h3>
+            }
+            else
+            {
+                var won = Model.WinnerId == Model.CurrentUserId;
+                <h3 class="@(won ? "text-success" : "text-danger") mt-3">
+                    @(won ? "¡VICTORIA! Has hundido toda la flota enemiga." : "DERROTA. Tu flota ha sido destruida.")
+                </h3>
+            }
+            <a asp-action="Index" class="btn btn-primary mt-3">Volver a mis partidas</a>
+        }
+        else
+        {
+            if (Model.Status == "Playing" || Model.Status == "Ready")
+            {
+                <h4 class="@(Model.IsMyTurn ? "text-success fw-bold" : "text-warning")" id="turnIndicator">
+                    @(Model.IsMyTurn ? "¡ES TU TURNO! Haz clic en el radar enemigo para atacar." : "Esperando al oponente...")
+                </h4>
+            }
+            else
+            {
+                <h4 class="text-secondary">Los jugadores están posicionando sus barcos.</h4>
+                <button class="btn btn-sm btn-outline-secondary mt-2 me-2" onclick="window.location.reload()">Refrescar estado</button>
+            }
+
+            <form asp-controller="Battleship" asp-action="Cancel" asp-route-id="@Model.MatchId" method="post" class="d-inline mt-2" onsubmit="return confirm('¿Estás seguro de que deseas cancelar esta partida?');">
+                <button type="submit" class="btn btn-sm btn-outline-danger">Cancelar Partida</button>
+            </form>
+        }
+    </div>
+
+    @Html.AntiForgeryToken()
+
+    <div class="row g-5">
+        <div class="col-md-6">
+            <h5 class="text-center mb-3">Mi Flota (Radar Aliado)</h5>
+            <div class="bs-grid shadow">
+                @for (int y = 0; y < 12; y++)
+                {
+                    for (int x = 0; x < 12; x++)
+                    {
+                        var attackReceived = Model.OpponentAttacks.FirstOrDefault(a => a.X == x && a.Y == y);
+                        var hasShip = myShipsGrid[x, y];
+
+                        string cssClass = "bs-cell";
+                        string content = "";
+
+                        if (attackReceived != null)
+                        {
+                            cssClass += attackReceived.IsHit ? " hit" : " miss";
+                            content = attackReceived.IsHit ? "💥" : "✖";
+                        }
+                        else if (hasShip)
+                        {
+                            cssClass += " ship";
+                            content = "⬛"; 
+                        }
+
+                        <div class="@cssClass">@content</div>
+                    }
+                }
+            </div>
+        </div>
+
+        <div class="col-md-6">
+            <h5 class="text-center mb-3">Radar Enemigo (Ataque)</h5>
+            <div class="bs-grid shadow">
+                @for (int y = 0; y < 12; y++)
+                {
+                    for (int x = 0; x < 12; x++)
+                    {
+                        var myAttack = Model.MyAttacks.FirstOrDefault(a => a.X == x && a.Y == y);
+
+                        string cssClass = "bs-cell enemy";
+                        string content = "";
+                        bool canFire = true;
+
+                        if (myAttack != null)
+                        {
+                            cssClass = "bs-cell " + (myAttack.IsHit ? "hit" : "miss");
+                            content = myAttack.IsHit ? "💥" : "✖";
+                            canFire = false;
+                        }
+
+                        <div class="@cssClass" onclick="fireMissile(@x, @y, @(canFire.ToString().ToLower()))">
+                            @content
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        const matchId = @Model.MatchId;
+        const isMyTurn = @Model.IsMyTurn.ToString().ToLower();
+        const status = '@Model.Status';
+        const token = document.querySelector('input[name="__RequestVerificationToken"]').value;
+
+        const currentAttacksCount = @(Model.MyAttacks.Count + Model.OpponentAttacks.Count);
+        let isFiring = false;
+
+        async function fireMissile(x, y, canFire) {
+            if (!isMyTurn || status === 'Finished' || status === 'Canceled' || !canFire || isFiring) return;
+
+            isFiring = true;
+
+            try {
+                const response = await fetch('@Url.Action("Attack", "Battleship")', {
+                    method: 'POST',
+                    headers: {
+                        'Content-Type': 'application/x-www-form-urlencoded'
+                    },
+                    body: `matchId=${matchId}&x=${x}&y=${y}&__RequestVerificationToken=${encodeURIComponent(token)}`
+                });
+
+                if (!response.ok) {
+                    console.error("El servidor rechazó la petición.");
+                    isFiring = false;
+                    return;
+                }
+
+                const result = await response.json();
+
+                if (result.success) {
+                    window.location.reload();
+                } else {
+                    alert(result.message);
+                    isFiring = false;
+                }
+            } catch (error) {
+                console.error("Error disparando misil:", error);
+                isFiring = false;
+            }
+        }
+
+        const needsPolling = (!isMyTurn && status !== 'Finished' && status !== 'Canceled') || status === 'Setup';
+
+        if (needsPolling) {
+            setInterval(async () => {
+                try {
+                    const response = await fetch(`@Url.Action("MatchStatus", "Battleship")/${matchId}?t=${new Date().getTime()}`);
+                    const data = await response.json();
+
+                    if (data.success) {
+                        let shouldReload = false;
+
+                        
+                        if (status === 'Setup' && data.status !== 'Setup') {
+                            shouldReload = true;
+                        }
+                        
+                        else if (status !== 'Setup' && data.isMyTurn !== isMyTurn) {
+                            shouldReload = true;
+                        }
+                        
+                        else if (data.attacksCount !== currentAttacksCount) {
+                            shouldReload = true;
+                        }
+                        
+                        else if (status !== 'Finished' && data.status === 'Finished') {
+                            shouldReload = true;
+                        }
+                        else if (status !== 'Canceled' && data.status === 'Canceled') {
+                            shouldReload = true;
+                        }
+
+                        
+                        if (shouldReload) {
+                            window.location.reload();
+                        }
+                    }
+                } catch (error) {
+                    console.error("Error verificando estado en tiempo real:", error);
+                }
+            }, 2500); 
+        }
+    </script>
+}
+}
