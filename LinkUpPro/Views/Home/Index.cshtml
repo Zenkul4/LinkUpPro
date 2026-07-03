@@ -4,7 +4,7 @@
 
 @{
     ViewData["Title"] = "Inicio";
-    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value;
+    var currentUserId = User.FindFirst(System.Security.Claims.ClaimTypes.NameIdentifier)?.Value ?? string.Empty;
 
     // Solución: Usamos el método maestro GetDashboardAsync de Paul y extraemos solo las IncomingRequests
     var dashboardResult = await FriendService.GetDashboardAsync(currentUserId, null);

@@ -1,6 +1,8 @@
-﻿using LinkUpProject.Application.ViewModels.Account;
 using LinkUpProject.Application.Interfaces.Services;
+using LinkUpProject.Application.ViewModels.Account;
+using Microsoft.AspNetCore.Authorization;
 using Microsoft.AspNetCore.Mvc;
+using System.Security.Claims;
 
 namespace LinkUpPro.Controllers;
 
@@ -48,7 +50,7 @@ public class AccountController : Controller
             return View(vm);
         }
 
-        TempData["Success"] = "Su cuenta fue creada correctamente. Hemos enviado un enlace de activación a su correo electrónico.";
+        TempData["Success"] = "Su cuenta fue creada correctamente. Hemos enviado un enlace de activacion a su correo electronico.";
         return RedirectToAction(nameof(Login));
     }
 
@@ -68,7 +70,7 @@ public class AccountController : Controller
             return View(vm);
         }
 
-        TempData["Success"] = "Si el nombre de usuario corresponde a una cuenta registrada, recibirá un enlace para restablecer su contraseña.";
+        TempData["Success"] = "Si el nombre de usuario corresponde a una cuenta registrada, recibira un enlace para restablecer su contrasena.";
         return RedirectToAction(nameof(Login));
     }
 
@@ -95,7 +97,7 @@ public class AccountController : Controller
             return View(vm);
         }
 
-        TempData["Success"] = "Su contraseña fue restablecida correctamente. Ya puede iniciar sesión.";
+        TempData["Success"] = "Su contrasena fue restablecida correctamente. Ya puede iniciar sesion.";
         return RedirectToAction(nameof(Login));
     }
 
@@ -110,12 +112,10 @@ public class AccountController : Controller
     }
 
     [HttpGet]
+    [Authorize]
     public async Task<IActionResult> Profile()
     {
-        if (!User.Identity!.IsAuthenticated)
-            return RedirectToAction(nameof(Login));
-
-        var result = await _accountService.GetProfileAsync(User.Identity.Name!);
+        var result = await _accountService.GetProfileAsync(User.Identity!.Name!);
 
         if (!result.IsSuccess)
         {
@@ -124,6 +124,51 @@ public class AccountController : Controller
         }
 
         return View(result.Data);
+    }
+
+    [HttpGet]
+    [Authorize]
+    public async Task<IActionResult> EditProfile()
+    {
+        var result = await _accountService.GetProfileAsync(User.Identity!.Name!);
+
+        if (!result.IsSuccess)
+        {
+            TempData["ErrorMessage"] = result.ErrorMessage;
+            return RedirectToAction("Index", "Home");
+        }
+
+        result.Data!.IsEditing = true;
+        return View("Profile", result.Data);
+    }
+
+    [HttpPost]
+    [Authorize]
+    [ValidateAntiForgeryToken]
+    public async Task<IActionResult> EditProfile(ProfileViewModel vm)
+    {
+        if (!ModelState.IsValid)
+        {
+            vm.IsEditing = true;
+            return View("Profile", vm);
+        }
+
+        var userId = User.FindFirstValue(ClaimTypes.NameIdentifier);
+
+        if (string.IsNullOrWhiteSpace(userId))
+            return RedirectToAction(nameof(Login));
+
+        var result = await _accountService.UpdateProfileAsync(vm, userId);
+
+        if (!result.IsSuccess)
+        {
+            ModelState.AddModelError(string.Empty, result.ErrorMessage);
+            vm.IsEditing = true;
+            return View("Profile", vm);
+        }
+
+        TempData["Success"] = "Tu informacion de perfil fue actualizada correctamente.";
+        return RedirectToAction(nameof(Profile));
     }
 
     [HttpGet]
@@ -137,7 +182,7 @@ public class AccountController : Controller
             return RedirectToAction(nameof(Login));
         }
 
-        TempData["Success"] = "Su cuenta fue activada correctamente. Ya puede iniciar sesión.";
+        TempData["Success"] = "Su cuenta fue activada correctamente. Ya puede iniciar sesion.";
         return RedirectToAction(nameof(Login));
     }
 }
