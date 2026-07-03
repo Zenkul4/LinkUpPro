@@ -179,9 +179,9 @@ public class AccountService : IAccountService
         var user = await _userManager.FindByIdAsync(userId);
         if (user == null) return Result.Failure("Usuario no encontrado.");
 
-        user.FirstName = vm.FirstName;
-        user.LastName = vm.LastName;
-        user.PhoneNumber = vm.PhoneNumber;
+        user.FirstName = vm.FirstName.Trim();
+        user.LastName = vm.LastName.Trim();
+        user.PhoneNumber = string.IsNullOrWhiteSpace(vm.PhoneNumber) ? null : vm.PhoneNumber.Trim();
 
         var result = await _userManager.UpdateAsync(user);
         if (result.Succeeded) return Result.Success();
